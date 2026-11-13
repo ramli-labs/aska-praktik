@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Panel Guru – ASKA Praktik Informatika IX</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#1d2330;--mut:#5d6677;--line:#dfe3ea;--pri:#1f5fbf;--ok:#1f8a4c;--no:#c0392b}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45}
+header{background:#14233c;color:#fff;padding:10px 18px;display:flex;align-items:center;gap:12px}
+header h1{font-size:16px;margin:0}
+main{max-width:1400px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+h2{font-size:18px;margin:0 0 10px}
+.mut{color:var(--mut)}.sm{font-size:12.5px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:7px 12px;font-size:13.5px;cursor:pointer;font-weight:600;color:var(--ink)}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}.btn.no{background:var(--no);border-color:var(--no);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+select,input{font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.token{font-size:40px;font-weight:800;letter-spacing:8px;font-family:ui-monospace,Consolas,monospace}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
+.stat div{background:#f3f6fb;border-radius:8px;padding:8px 10px}.stat b{display:block;font-size:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:middle}
+th{background:#eef1f5;position:sticky;top:0}
+.b{border-radius:12px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap}
+.Belum{background:#eef1f5;color:#5d6677}.Login{background:#e8f0fc;color:#1f5fbf}.Mengerjakan{background:#fff3db;color:#8a5a00}.Selesai{background:#e7f6ed;color:#1f7a45}
+.l1{color:#a86800;font-weight:700}.l2{color:#c0392b;font-weight:800}
+.on{color:#1f8a4c}.off{color:#c0392b}
+.hide{display:none!important}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #8886;border-top-color:#333;border-radius:50%;animation:s .8s linear infinite;vertical-align:-1px}
+@keyframes s{to{transform:rotate(360deg)}}
+.rinci{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;white-space:pre-wrap;color:#444}
+</style>
+</head>
+<body>
+<header><h1>Panel Guru · ASKA Praktik Informatika IX</h1><span style="flex:1"></span><span id="jam" class="sm"></span></header>
+<main id="app"></main>
+<script src="soal.js"></script>
+<script>
+(function () {
+'use strict';
+const CONFIG = { APPS_SCRIPT_URL: '' };
+const API = new URLSearchParams(location.search).get('api') || CONFIG.APPS_SCRIPT_URL;
+const KELAS = ['IX-A','IX-B','IX-C','IX-D','IX-E','IX-F','IX-G'];
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let KUNCI = sessionStorage.getItem('aska_guru_kunci') || '';
+let KLS = sessionStorage.getItem('aska_guru_kelas') || 'IX-A', SES = Number(sessionStorage.getItem('aska_guru_sesi') || 1);
+let offset = 0, timer = null, DATA = null;
+
+async function post(b) {
+  try { const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ kunci: KUNCI }, b)) }); const j = await r.json(); if (j.now) offset = j.now - Date.now(); return j; }
+  catch (e) { return { ok: false, pesan: 'Koneksi gagal: ' + e }; }
+}
+const now = () => Date.now() + offset;
+const jam = (t) => t ? new Date(t).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '–';
+setInterval(() => { $('#jam').textContent = new Date(now()).toLocaleTimeString('id-ID'); }, 1000);
+
+function viewMasuk(pesan) {
+  $('#app').innerHTML = `<div class="card" style="max-width:420px;margin:40px auto"><h2>Masuk panel guru</h2>
+  <p class="mut sm">Kunci guru ada di Google Sheet ASKA Praktik, tab <b>Config</b>.</p>
+  <input type="password" id="k" placeholder="Kunci guru" style="width:100%"><div id="m" style="color:var(--no);margin-top:8px">${esc(pesan || '')}</div>
+  <button class="btn pri" id="b" style="margin-top:10px;width:100%">Masuk</button></div>`;
+  const go = async () => { KUNCI = $('#k').value.trim(); const r = await post({ aksi: 'guruStatus', kelas: KLS, sesi: SES }); if (!r.ok) { $('#m').textContent = r.pesan; return; } sessionStorage.setItem('aska_guru_kunci', KUNCI); viewPanel(); };
+  $('#b').onclick = go; $('#k').onkeydown = (e) => { if (e.key === 'Enter') go(); };
+}
+
+function viewPanel() {
+  $('#app').innerHTML = `
+  <div class="card">
+    <div class="row">
+      <label>Kelas <select id="sk">${KELAS.map(k => `<option ${k === KLS ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
+      <label>Sesi <select id="ss"><option value="1" ${SES === 1 ? 'selected' : ''}>1 (absen 1–17)</option><option value="2" ${SES === 2 ? 'selected' : ''}>2 (absen 18–akhir)</option></select></label>
+      <span style="flex:1"></span>
+      <button class="btn pri" id="bBuka">Buka sesi</button>
+      <button class="btn" id="bToken">Token baru</button>
+      <button class="btn no" id="bTutup">Tutup sesi</button>
+      <button class="btn" id="bKeluar">Keluar</button>
+    </div>
+    <div class="row" style="margin-top:12px;align-items:flex-end;gap:24px">
+      <div><div class="sm mut">Status sesi</div><div id="sStatus" style="font-weight:700;font-size:16px">–</div></div>
+      <div><div class="sm mut">Token (bacakan ke murid)</div><div class="token" id="sToken">–</div></div>
+      <div><div class="sm mut">PIN pengawas (masuk ulang)</div><div class="token" style="font-size:26px;letter-spacing:4px" id="sPin">–</div></div>
+    </div>
+    <div class="stat" id="stat"></div>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Peserta</h2><span class="sm mut" id="upd"></span></div>
+    <div style="max-height:62vh;overflow:auto;margin-top:8px"><table id="tbl"></table></div>
+  </div>
+  <div class="card">
+    <div class="row"><h2 style="margin:0">Penilaian otomatis</h2><span style="flex:1"></span>
+      <button class="btn pri" id="bNilai">Nilai sesi ini</button><button class="btn ok hide" id="bSimpanNilai">Simpan nilai ke Sheet</button><button class="btn hide" id="bCsv">Unduh CSV</button></div>
+    <p class="sm mut">Sistem menjalankan program setiap murid dengan data uji dan memberi skor awal 0–4 per soal. Periksa ulang sebelum nilai ditetapkan.</p>
+    <div id="nilaiBox"></div>
+  </div>`;
+  $('#sk').onchange = () => { KLS = $('#sk').value; sessionStorage.setItem('aska_guru_kelas', KLS); muat(); $('#nilaiBox').innerHTML = ''; };
+  $('#ss').onchange = () => { SES = Number($('#ss').value); sessionStorage.setItem('aska_guru_sesi', SES); muat(); $('#nilaiBox').innerHTML = ''; };
+  $('#bBuka').onclick = async () => { const r = await post({ aksi: 'guruBukaSesi', kelas: KLS, sesi: SES }); if (!r.ok) alert(r.pesan); muat(); };
+  $('#bToken').onclick = async () => { if (!confirm('Buat token baru? Token lama tidak berlaku untuk masuk.')) return; const r = await post({ aksi: 'guruBukaSesi', kelas: KLS, sesi: SES, tokenBaru: true }); if (!r.ok) alert(r.pesan); muat(); };
+  $('#bTutup').onclick = async () => { if (!confirm(`Tutup sesi ${SES} ${KLS}? Murid tidak bisa masuk lagi (yang sedang mengerjakan tetap bisa menyimpan dan mengirim).`)) return; const r = await post({ aksi: 'guruTutupSesi', kelas: KLS, sesi: SES }); if (!r.ok) alert(r.pesan); muat(); };
+  $('#bKeluar').onclick = () => { sessionStorage.removeItem('aska_guru_kunci'); KUNCI = ''; viewMasuk(); };
+  $('#bNilai').onclick = nilaiSesi;
+  muat();
+  clearInterval(timer); timer = setInterval(muat, 10000);
+}
+
+async function muat() {
+  const r = await post({ aksi: 'guruStatus', kelas: KLS, sesi: SES });
+  if (!r.ok) { if (/Kunci guru/.test(r.pesan)) { clearInterval(timer); return viewMasuk(r.pesan); } $('#upd').textContent = r.pesan; return; }
+  DATA = r;
+  const s = r.sesi || {};
+  $('#sStatus').innerHTML = s.status === 'Dibuka' ? '<span style="color:var(--ok)">Dibuka</span>' : '<span class="mut">Ditutup</span>';
+  $('#sToken').textContent = s.status === 'Dibuka' ? (s.token || '–') : '–';
+  $('#sPin').textContent = r.pin || '–';
+  const P = r.peserta, c = (st) => P.filter(p => p.status === st).length;
+  $('#stat').innerHTML = `<div><span class="sm mut">Peserta</span><b>${P.length}</b></div><div><span class="sm mut">Belum masuk</span><b>${c('Belum')}</b></div><div><span class="sm mut">Masuk (belum mulai)</span><b>${c('Login')}</b></div><div><span class="sm mut">Mengerjakan</span><b>${c('Mengerjakan')}</b></div><div><span class="sm mut">Selesai</span><b>${c('Selesai')}</b></div><div><span class="sm mut">Ada pelanggaran</span><b>${P.filter(p => p.pelanggaran).length}</b></div>`;
+  const t = now();
+  $('#tbl').innerHTML = `<tr><th>Absen</th><th>Nama</th><th>Kursi</th><th>Paket</th><th>Status</th><th>Pelanggaran</th><th>Sisa waktu</th><th>Terisi</th><th>Simpan terakhir</th><th>Koneksi</th><th>Login</th><th>Nilai</th><th>Aksi</th></tr>` +
+    P.map(p => {
+      const sisa = p.status === 'Mengerjakan' && p.batas ? Math.max(0, p.batas - t) : null;
+      const sisaT = sisa == null ? '–' : `${Math.floor(sisa / 60000)}:${String(Math.floor(sisa % 60000 / 1000)).padStart(2, '0')}`;
+      const on = p.aktif && t - p.aktif < 75000;
+      return `<tr><td>${p.absen}</td><td>${esc(p.nama)}${p.ket ? `<div class="sm mut">${esc(p.ket)}</div>` : ''}</td><td>${esc(p.kursi)}</td><td>${esc(p.paket)}</td>
+        <td><span class="b ${p.status}">${p.status}</span></td>
+        <td class="${p.pelanggaran >= 2 ? 'l2' : p.pelanggaran ? 'l1' : ''}">${p.pelanggaran}/3</td><td>${sisaT}</td><td>${p.terisi}/6</td><td>${jam(p.disimpan)}</td>
+        <td>${p.status === 'Mengerjakan' || p.status === 'Login' ? (on ? '<span class="on">● aktif</span>' : '<span class="off">● tidak aktif</span>') : '–'}</td>
+        <td>${p.login}</td><td>${p.nilai === '' ? '–' : p.nilai}</td>
+        <td><button class="btn sm" data-reset="${p.absen}" ${p.status === 'Belum' ? 'disabled' : ''} title="Izinkan masuk ulang tanpa PIN">Reset login</button>
+            <button class="btn sm" data-lagi="${p.absen}" ${p.status !== 'Selesai' ? 'disabled' : ''} title="Buka lagi ujian yang terlanjur selesai karena kendala teknis">Buka lagi</button></td></tr>`;
+    }).join('');
+  $('#tbl').querySelectorAll('[data-reset]').forEach(b => b.onclick = async () => { const p = P.find(x => x.absen === +b.dataset.reset); if (!confirm(`Reset login ${p.nama}? Murid bisa masuk lagi tanpa PIN.`)) return; const r2 = await post({ aksi: 'guruResetLogin', kelas: KLS, absen: p.absen }); if (!r2.ok) alert(r2.pesan); muat(); });
+  $('#tbl').querySelectorAll('[data-lagi]').forEach(b => b.onclick = async () => { const p = P.find(x => x.absen === +b.dataset.lagi); const m = prompt(`Buka lagi ujian ${p.nama} (hanya untuk kendala teknis).\nTambahan waktu (menit) di atas sisa waktunya:`, '0'); if (m === null) return; const r2 = await post({ aksi: 'guruBukaLagi', kelas: KLS, absen: p.absen, tambahMenit: Number(m) || 0 }); if (!r2.ok) alert(r2.pesan); muat(); });
+  $('#upd').textContent = 'Diperbarui ' + jam(Date.now()) + ' · otomatis tiap 10 detik';
+}
+
+/* ============ PENILAIAN ============ */
+let worker = null, wReady = false, wQ = {}, wSeq = 0;
+function startWorker() { wReady = false; worker = new Worker('worker.js'); worker.onmessage = (e) => { const m = e.data; if (m.id === 'siap') { wReady = true; return; } if (m.id === 'boot') return; const cb = wQ[m.id]; if (cb) { delete wQ[m.id]; cb(m); } }; }
+function runPy(code, inputs) {
+  if (!worker) startWorker();
+  return new Promise((res) => {
+    const id = ++wSeq; const ms = 4000 + (wReady ? 0 : 90000);
+    const t = setTimeout(() => { if (wQ[id]) { delete wQ[id]; worker.terminate(); startWorker(); res({ out: '', err: { jenis: 'Waktu habis', baris: null, pesan: 'terlalu lama' } }); } }, ms);
+    wQ[id] = (m) => { clearTimeout(t); res(m); };
+    worker.postMessage({ id, code, inputs: inputs.map(String), echo: false });
+  });
+}
+const angka = (s) => (s.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+function nilaiAda(out, t) { // A3: nilai benar (urutan bebas, teks tanpa beda huruf besar-kecil)
+  let ok = true;
+  if (t.harap) { const n = angka(out); ok = t.harap.every(h => n.some(x => Math.abs(x - h) <= 0.011)); }
+  if (t.harap_teks) ok = ok && (t.tepat ? out.split('\n').some(l => l.trim().toLowerCase().replace(/\s+/g, ' ').replace(/^kategori\s*:?\s*/, '') === t.harap_teks.toLowerCase()) : out.toLowerCase().includes(t.harap_teks.toLowerCase()));
+  if (t.tolak) ok = ok && !out.toLowerCase().includes(t.tolak.toLowerCase());
+  return ok;
+}
+const DETEKSI6 = {
+  A: [/nilai1\s*=\s*(int|float)\s*\(/, /if\s+rata\s*>=?\s*\d+(\.\d+)?\s*:/, /else\s*:\s*\n[ \t]+print\(/],
+  B: [/jumlah\s*=\s*int\s*\(/, /for\s+\w+\s+in\s+range\([^\n]*\)\s*:/, /print\(\s*"Total bayar:"\s*,/],
+  C: [/if\s+status\s*==\s*["']H["']\s*:/, /\n([ \t]*)if\s+status[^\n]*:\s*\n\1[ \t]+hadir\s*=/, /\*\s*100\b/],
+  D: [/\(\s*jam\s*-\s*1\s*\)/, /^print\(\s*"Biaya parkir:"/m, /print\(\s*"Terima kasih"\s*\)/],
+};
+async function nilaiSatu(q, kode, konteks) {
+  kode = String(kode || '');
+  if (!kode.trim() || (q.kode_awal && kode.trim() === q.kode_awal.trim())) return { skor: 0, r: 'kosong/tidak diubah' };
+  const hasil = [];
+  for (const t of q.tes) hasil.push(await runPy(kode, t.input));
+  const tanpaErr = hasil.every(h => !h.err);
+  const semuaCocok = hasil.every((h, i) => !h.err && ASKA.cocok(h.out, q.tes[i]));
+  const lolos = hasil.filter((h, i) => !h.err && ASKA.cocok(h.out, q.tes[i])).length;
+  if (q.no === 6) {
+    if (semuaCocok) return { skor: 4, r: `semua ${q.tes.length} data uji benar` };
+    const det = DETEKSI6[konteks] || [];
+    const fix = det.filter(rx => rx.test(kode)).length;
+    return { skor: Math.min(3, fix), r: `${fix}/3 kesalahan diperbaiki; lolos ${lolos}/${q.tes.length}` };
+  }
+  const a1 = tanpaErr;
+  const a2 = hasil.every(h => !h.err || !/Input habis|ValueError|TypeError/.test(h.err.jenis)) && /\b(int|float)\s*\(/.test(kode);
+  const a3 = hasil.every((h, i) => !h.err && nilaiAda(h.out, q.tes[i]));
+  const label = (q.no === 3 || q.no === 4) ? true : hasil.every(h => /[A-Za-z]/.test(h.out));
+  const a4 = semuaCocok && label;
+  const err1 = hasil.find(h => h.err);
+  return { skor: [a1, a2, a3, a4].filter(Boolean).length, r: `A1${a1 ? '✓' : '✗'} A2${a2 ? '✓' : '✗'} A3${a3 ? '✓' : '✗'} A4${a4 ? '✓' : '✗'} · lolos ${lolos}/${q.tes.length}${err1 ? ' · ' + err1.err.jenis : ''}` };
+}
+let HASIL = [];
+async function nilaiSesi() {
+  const box = $('#nilaiBox'); const b = $('#bNilai'); b.disabled = true;
+  box.innerHTML = '<p><span class="spin"></span> Mengambil jawaban…</p>';
+  const r = await post({ aksi: 'guruDataNilai', kelas: KLS, sesi: SES });
+  if (!r.ok) { box.innerHTML = `<p style="color:var(--no)">${esc(r.pesan)}</p>`; b.disabled = false; return; }
+  if (!worker) startWorker();
+  HASIL = [];
+  const data = r.data.filter(d => d.status !== 'Belum');
+  for (let i = 0; i < data.length; i++) {
+    const d = data[i];
+    box.innerHTML = `<p><span class="spin"></span> Menilai ${i + 1}/${data.length}: ${esc(d.nama)}… ${wReady ? '' : '(menyiapkan Python)'}</p>`;
+    const konteks = d.paket.slice(-1); const skor = [], rinci = [];
+    for (const q of d.soal) { const h = await nilaiSatu(q, d.jawaban[q.no], konteks); skor.push(h.skor); rinci.push(`S${q.no}=${h.skor} (${h.r})`); }
+    const nilai = Math.round(d.soal.reduce((a, q, k) => a + skor[k] / 4 * q.bobot, 0) * 100) / 100;
+    HASIL.push({ absen: d.absen, nama: d.nama, paket: d.paket, status: d.status, skor, nilai, rincian: rinci.join('\n') });
+  }
+  b.disabled = false;
+  box.innerHTML = HASIL.length ? `<table><tr><th>Absen</th><th>Nama</th><th>Paket</th><th>Status</th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>S5</th><th>S6</th><th>Nilai</th><th>Rincian</th></tr>` +
+    HASIL.map(h => `<tr><td>${h.absen}</td><td>${esc(h.nama)}</td><td>${esc(h.paket)}</td><td><span class="b ${h.status}">${h.status}</span></td>${h.skor.map(s => `<td>${s}</td>`).join('')}<td><b>${h.nilai}</b></td><td class="rinci">${esc(h.rincian)}</td></tr>`).join('') + '</table>'
+    : '<p class="mut">Belum ada murid yang mengerjakan di sesi ini.</p>';
+  $('#bSimpanNilai').classList.toggle('hide', !HASIL.length); $('#bCsv').classList.toggle('hide', !HASIL.length);
+  $('#bSimpanNilai').onclick = async () => { const r2 = await post({ aksi: 'guruSimpanNilai', kelas: KLS, rows: HASIL }); alert(r2.ok ? `Nilai ${r2.jumlah} murid tersimpan di tab Nilai.` : r2.pesan); muat(); };
+  $('#bCsv').onclick = () => {
+    const rows = [['Kelas', 'Absen', 'Nama', 'Paket', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'Nilai']].concat(HASIL.map(h => [KLS, h.absen, h.nama, h.paket].concat(h.skor).concat([h.nilai])));
+    const csv = rows.map(r3 => r3.map(x => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = `Nilai_ASKA_Praktik_${KLS}_Sesi${SES}.csv`; a.click();
+  };
+}
+
+if (new URLSearchParams(location.search).get('uji') === '1') window.__nilaiSatu = nilaiSatu;
+if (!API) { $('#app').innerHTML = '<div class="card">Alamat server belum diatur.</div>'; return; }
+if (KUNCI) viewPanel(); else viewMasuk();
+})();
+</script>
+</body>
+</html>

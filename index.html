@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ASKA Praktik Informatika – Kelas IX</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#1d2330;--mut:#5d6677;--line:#dfe3ea;--pri:#1f5fbf;--ok:#1f8a4c;--okb:#e7f6ed;--no:#c0392b;--nob:#fdecea;--warnb:#fff6e0;--code:#0f1724}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;-webkit-user-select:none;user-select:none}
+textarea,input,select{-webkit-user-select:text;user-select:text}
+header{background:#14233c;color:#fff;padding:9px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:48px}
+header h1{font-size:15px;margin:0;font-weight:650}
+header .sp{flex:1}
+.pill{background:#ffffff1f;border-radius:20px;padding:3px 11px;font-size:13px;font-weight:600;white-space:nowrap}
+.pill.warn{background:#e0a100;color:#1d2330}.pill.bad{background:#c0392b}
+.timer{font-variant-numeric:tabular-nums;font-size:16px}
+main{max-width:1320px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px}
+h2{font-size:20px;margin:0 0 8px}
+.mut{color:var(--mut)}.sm{font-size:13px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:8px 14px;font-size:14px;cursor:pointer;color:var(--ink);font-weight:600}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.big{font-size:17px;padding:12px 26px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+select,input[type=text],input[type=password]{font-size:16px;padding:10px;border:1px solid var(--line);border-radius:7px;width:100%;background:#fff}
+label.f{display:block;font-weight:600;margin:12px 0 5px;font-size:14px}
+.narrow{max-width:480px;margin:30px auto}
+.mid{max-width:760px;margin:24px auto}
+.msg{border-radius:8px;padding:10px 12px;margin-top:10px;font-weight:600}
+.msg.no{background:var(--nob);color:var(--no)}.msg.ok{background:var(--okb);color:var(--ok)}.msg.warn{background:var(--warnb);color:#7a5200}
+.info{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+.info div{background:#f3f6fb;border-radius:8px;padding:8px 10px}.info b{display:block;font-size:18px}
+ol.aturan li{margin:4px 0}
+#uj{display:grid;grid-template-columns:200px minmax(300px,5fr) 7fr;gap:14px;align-items:start}
+@media (max-width:1100px){#uj{grid-template-columns:1fr}}
+.nav button{display:flex;width:100%;justify-content:space-between;align-items:center;margin-bottom:6px;text-align:left}
+.nav button.act{border-color:var(--pri);background:#e8f0fc;color:var(--pri)}
+.dot{width:10px;height:10px;border-radius:50%;background:#d0d5dd;flex:none}.dot.isi{background:var(--ok)}
+.tag{font-size:12px;border-radius:20px;padding:2px 9px;font-weight:600}
+.tag.Mudah{background:#e7f6ed;color:#1f7a45}.tag.Sedang{background:#fff3db;color:#946000}.tag.Sukar{background:#fde8e6;color:#b03a2e}
+.soalteks p{margin:4px 0}.soalteks .lbl{font-weight:650}.soalteks ul{margin:2px 0 4px 18px;padding:0}
+.contoh{background:#f3f6fb;border-left:3px solid var(--pri);padding:8px 10px;border-radius:4px;font-size:14px;margin-top:8px}
+pre,textarea.ed,.out{font-family:ui-monospace,"Cascadia Code",Consolas,"Courier New",monospace}
+.edwrap{display:flex;border:1px solid #2a3446;border-radius:8px;overflow:hidden;background:var(--code);height:360px}
+.gut{background:#162033;color:#6b7891;text-align:right;padding:10px 8px;font-size:14px;line-height:21px;overflow:hidden;min-width:40px;white-space:pre}
+.gut .e{color:#ff8a80;font-weight:700}
+textarea.ed{flex:1;border:0;outline:0;resize:none;background:transparent;color:#e6edf6;font-size:14px;line-height:21px;padding:10px;white-space:pre;overflow:auto;tab-size:4;caret-color:#fff}
+.inout{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:10px}
+.inout textarea{width:100%;height:120px;font-family:ui-monospace,Consolas,monospace;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px;resize:vertical}
+.out{background:#0f1724;color:#d8e3f0;border-radius:7px;padding:8px 10px;height:120px;overflow:auto;font-size:13.5px;white-space:pre-wrap;-webkit-user-select:none;user-select:none}
+.out .err{color:#ff9b8f}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.modal{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal .card{max-width:520px;width:100%}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #fff6;border-top-color:#fff;border-radius:50%;animation:s .8s linear infinite;vertical-align:-1px}
+@keyframes s{to{transform:rotate(360deg)}}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>ASKA Praktik Informatika · Kelas IX</h1>
+  <span class="sp"></span>
+  <span id="hNama" class="sm"></span>
+  <span id="hLanggar" class="pill hide"></span>
+  <span id="hSimpan" class="sm hide"></span>
+  <span id="hTimer" class="pill timer hide"></span>
+</header>
+<main id="app"></main>
+<script src="app.js"></script>
+</body>
+</html>
