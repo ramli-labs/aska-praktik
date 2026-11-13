@@ -17,7 +17,7 @@ const HDR = {
   Sesi: ['Kelas', 'Sesi', 'Token', 'Status', 'Dibuka', 'Ditutup'],
   Peserta: ['Kelas', 'Absen', 'Nama', 'Sesi', 'Baris', 'Kursi', 'Paket', 'Status', 'SID', 'Login ke', 'Mulai', 'Batas', 'Selesai', 'Pelanggaran', 'Terakhir aktif', 'Keterangan'],
   Jawaban: ['Kelas', 'Absen', 'Nama', 'Paket', 'Disimpan', 'Soal 1', 'Soal 2', 'Soal 3', 'Soal 4', 'Soal 5', 'Soal 6'],
-  Pelanggaran: ['Waktu', 'Kelas', 'Absen', 'Nama', 'Jenis', 'Ke'],
+  Pelanggaran: ['Waktu', 'Kelas', 'Absen', 'Nama', 'Jenis', 'Ke', 'Lama keluar (detik)'],
   Nilai: ['Kelas', 'Absen', 'Nama', 'Paket', 'Skor 1', 'Skor 2', 'Skor 3', 'Skor 4', 'Skor 5', 'Skor 6', 'Nilai', 'Rincian', 'Dinilai'],
 };
 const P = { KELAS: 0, ABSEN: 1, NAMA: 2, SESI: 3, BARIS: 4, KURSI: 5, PAKET: 6, STATUS: 7, SID: 8, LOGIN: 9, MULAI: 10, BATAS: 11, SELESAI: 12, LANGGAR: 13, AKTIF: 14, KET: 15 };
@@ -200,6 +200,19 @@ const API_ = {
     if (ke >= 3) { selesai_(f, 'Pelanggaran ke-3'); return { ok: true, pelanggaran: ke, selesai: true }; }
     return { ok: true, pelanggaran: ke, selesai: false };
   },
+  kembali(b) {
+    const f = cariPeserta_(r => r[P.SID] && r[P.SID] === b.sid);
+    if (!f) return { ok: false, keluar: true, pesan: 'Sesi masuk tidak berlaku.' };
+    const sh = sh_('Pelanggaran');
+    if (sh.getRange(1, 7).getValue() !== 'Lama keluar (detik)') sh.getRange(1, 7).setValue('Lama keluar (detik)').setFontWeight('bold').setBackground('#d9d9d9');
+    const v = sh.getDataRange().getValues();
+    for (let i = v.length - 1; i >= 1; i--) if (v[i][1] === f.r[P.KELAS] && Number(v[i][2]) === Number(f.r[P.ABSEN])) {
+      if (v[i][6] === '' || v[i][6] === undefined) sh.getRange(i + 1, 7).setValue(Math.max(0, Math.min(36000, Math.round(Number(b.detik) || 0))));
+      break;
+    }
+    tulisPeserta_(f, { AKTIF: new Date() });
+    return { ok: true };
+  },
   kirim(b) {
     const f = cariPeserta_(r => r[P.SID] && r[P.SID] === b.sid);
     if (!f) return { ok: false, keluar: true, pesan: 'Sesi masuk tidak berlaku. Masuk ulang dengan PIN pengawas lalu kirim lagi.' };
@@ -213,13 +226,15 @@ const API_ = {
     const v = sh_('Peserta').getDataRange().getValues().slice(1).filter(r => r[P.KELAS] === b.kelas && Number(r[P.SESI]) === Number(b.sesi));
     const jv = sh_('Jawaban').getDataRange().getValues().slice(1).filter(r => r[0] === b.kelas);
     const nv = sh_('Nilai').getDataRange().getValues().slice(1).filter(r => r[0] === b.kelas);
+    const pv = sh_('Pelanggaran').getDataRange().getValues().slice(1).filter(r => r[1] === b.kelas);
     const peserta = v.map(r => {
       const j = jv.find(x => Number(x[1]) === Number(r[P.ABSEN]));
       const n = nv.find(x => Number(x[1]) === Number(r[P.ABSEN]));
+      const pl = pv.filter(x => Number(x[2]) === Number(r[P.ABSEN]));
       return {
         absen: Number(r[P.ABSEN]), nama: r[P.NAMA], kursi: r[P.BARIS] + r[P.KURSI], paket: r[P.PAKET], status: r[P.STATUS], login: angka_(r[P.LOGIN]),
         mulai: waktu_(r[P.MULAI]), batas: waktu_(r[P.BATAS]), selesai: waktu_(r[P.SELESAI]), pelanggaran: angka_(r[P.LANGGAR]), aktif: waktu_(r[P.AKTIF]),
-        ket: r[P.KET], disimpan: j ? waktu_(j[4]) : 0, terisi: j ? terisi_(j, paketId_(r[P.KELAS], r[P.SESI], r[P.PAKET])) : 0, nilai: n ? n[10] : '',
+        langgarRinci: pl.map(x => String(x[4]) + (x[6] !== '' && x[6] !== undefined ? ' · ' + x[6] + ' dtk' : '')), keluarDetik: pl.reduce((t, x) => t + (Number(x[6]) || 0), 0), ket: r[P.KET], disimpan: j ? waktu_(j[4]) : 0, terisi: j ? terisi_(j, paketId_(r[P.KELAS], r[P.SESI], r[P.PAKET])) : 0, nilai: n ? n[10] : '',
       };
     });
     return { ok: true, sesi: ses ? { token: ses[2], status: ses[3], dibuka: waktu_(ses[4]) } : null, pin: cfg_().PIN_PENGAWAS, durasi: Number(cfg_().DURASI_MENIT || 60), peserta };

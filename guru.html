@@ -127,7 +127,7 @@ async function muat() {
       const on = p.aktif && t - p.aktif < 75000;
       return `<tr><td>${p.absen}</td><td>${esc(p.nama)}${p.ket ? `<div class="sm mut">${esc(p.ket)}</div>` : ''}</td><td>${esc(p.kursi)}</td><td>${esc(p.paket)}</td>
         <td><span class="b ${p.status}">${p.status}</span></td>
-        <td class="${p.pelanggaran >= 2 ? 'l2' : p.pelanggaran ? 'l1' : ''}">${p.pelanggaran}/3</td><td>${sisaT}</td><td>${p.terisi}/6</td><td>${jam(p.disimpan)}</td>
+        <td class="${p.pelanggaran >= 2 ? 'l2' : p.pelanggaran ? 'l1' : ''}" title="${esc((p.langgarRinci || []).join('\n'))}">${p.pelanggaran}/3${p.keluarDetik ? `<div class="sm">keluar ${p.keluarDetik} dtk</div>` : ''}${(p.langgarRinci || []).length ? `<div class="sm mut" style="font-weight:400">${(p.langgarRinci || []).map(esc).join('<br>')}</div>` : ''}</td><td>${sisaT}</td><td>${p.terisi}/6</td><td>${jam(p.disimpan)}</td>
         <td>${p.status === 'Mengerjakan' || p.status === 'Login' ? (on ? '<span class="on">● aktif</span>' : '<span class="off">● tidak aktif</span>') : '–'}</td>
         <td>${p.login}</td><td>${p.nilai === '' ? '–' : p.nilai}</td>
         <td><button class="btn sm" data-reset="${p.absen}" ${p.status === 'Belum' ? 'disabled' : ''} title="Izinkan masuk ulang tanpa PIN">Reset login</button>
