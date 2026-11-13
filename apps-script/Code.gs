@@ -46,7 +46,7 @@ function setup() {
     const m = murid.getDataRange().getValues().slice(1);
     const rows = m.map(r => { const k = ASKA.paketKursi(Number(r[1])); return [r[0], Number(r[1]), r[2], k.sesi, k.baris, k.kursi, k.paket, 'Belum', '', 0, '', '', '', 0, '', '']; });
     ps.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-    ps.getRange('K:O').setNumberFormat('dd/MM/yyyy HH:mm:ss');
+    ps.getRange('K:M').setNumberFormat('dd/MM/yyyy HH:mm:ss'); ps.getRange('O:O').setNumberFormat('dd/MM/yyyy HH:mm:ss'); ps.getRange('N:N').setNumberFormat('0');
   }
   const sesi = ss.getSheetByName('Sesi');
   if (sesi.getLastRow() < 2) {
@@ -89,6 +89,13 @@ function cariPeserta_(pred) {
   return null;
 }
 function tulisPeserta_(f, upd) { Object.keys(upd).forEach(k => f.sh.getRange(f.row, P[k] + 1).setValue(upd[k])); }
+function angka_(v) { return v instanceof Date ? 0 : Number(v || 0); }
+function perbaikiFormatPeserta() {
+  const sh = sh_('Peserta'); const n = sh.getLastRow() - 1; if (n < 1) return;
+  sh.getRange('N:N').setNumberFormat('0'); sh.getRange('J:J').setNumberFormat('0');
+  const v = sh.getRange(2, 14, n, 1).getValues().map(r => [r[0] instanceof Date ? 0 : Number(r[0] || 0)]);
+  sh.getRange(2, 14, n, 1).setValues(v);
+}
 function waktu_(d) { return d instanceof Date ? d.getTime() : (d ? new Date(d).getTime() : 0); }
 function simpanJawaban_(f, jawaban) {
   if (!jawaban) return;
@@ -153,11 +160,11 @@ const API_ = {
     if (f.r[P.SID] && String(b.pin || '') !== cfg_().PIN_PENGAWAS) return { ok: false, perluPin: true, pesan: 'Kamu sudah pernah masuk. Minta pengawas memasukkan PIN.' };
     const sid = Utilities.getUuid();
     const status = f.r[P.STATUS] === 'Mengerjakan' ? 'Mengerjakan' : 'Login';
-    tulisPeserta_(f, { SID: sid, LOGIN: Number(f.r[P.LOGIN] || 0) + 1, STATUS: status, AKTIF: new Date() });
+    tulisPeserta_(f, { SID: sid, LOGIN: angka_(f.r[P.LOGIN]) + 1, STATUS: status, AKTIF: new Date() });
     const pid = paketId_(f.r[P.KELAS], f.r[P.SESI], f.r[P.PAKET]);
     return {
       ok: true, sid, nama: f.r[P.NAMA], kelas: f.r[P.KELAS], absen, sesi: f.r[P.SESI], kursi: f.r[P.BARIS] + f.r[P.KURSI], paket: f.r[P.PAKET],
-      soal: soalMurid_(pid), status, batas: waktu_(f.r[P.BATAS]), pelanggaran: Number(f.r[P.LANGGAR] || 0),
+      soal: soalMurid_(pid), status, batas: waktu_(f.r[P.BATAS]), pelanggaran: angka_(f.r[P.LANGGAR]),
       jawaban: bacaJawaban_(f.r[P.KELAS], absen), durasi: Number(cfg_().DURASI_MENIT || 60),
     };
   },
@@ -170,7 +177,7 @@ const API_ = {
       const now = new Date(); batas = now.getTime() + Number(cfg_().DURASI_MENIT || 60) * 60000;
       tulisPeserta_(f, { MULAI: now, BATAS: new Date(batas), STATUS: 'Mengerjakan', AKTIF: now });
     } else tulisPeserta_(f, { STATUS: 'Mengerjakan', AKTIF: new Date() });
-    return { ok: true, batas, pelanggaran: Number(f.r[P.LANGGAR] || 0) };
+    return { ok: true, batas, pelanggaran: angka_(f.r[P.LANGGAR]) };
   },
   simpan(b) {
     const f = cariPeserta_(r => r[P.SID] && r[P.SID] === b.sid);
@@ -180,14 +187,14 @@ const API_ = {
     if (batas && Date.now() > batas + GRACE_MS) { selesai_(f, 'Waktu habis'); return { ok: false, selesai: true, pesan: 'Waktu habis.' }; }
     simpanJawaban_(f, b.jawaban);
     tulisPeserta_(f, { AKTIF: new Date() });
-    return { ok: true, batas, pelanggaran: Number(f.r[P.LANGGAR] || 0) };
+    return { ok: true, batas, pelanggaran: angka_(f.r[P.LANGGAR]) };
   },
   langgar(b) {
     const f = cariPeserta_(r => r[P.SID] && r[P.SID] === b.sid);
     if (!f) return { ok: false, keluar: true, pesan: 'Sesi masuk tidak berlaku.' };
     if (f.r[P.STATUS] === 'Selesai') return { ok: false, selesai: true, pesan: 'Ujian sudah selesai.' };
     simpanJawaban_(f, b.jawaban);
-    const ke = Number(f.r[P.LANGGAR] || 0) + 1;
+    const ke = angka_(f.r[P.LANGGAR]) + 1;
     sh_('Pelanggaran').appendRow([new Date(), f.r[P.KELAS], f.r[P.ABSEN], f.r[P.NAMA], String(b.jenis || '').slice(0, 80), ke]);
     tulisPeserta_(f, { LANGGAR: ke, AKTIF: new Date() });
     if (ke >= 3) { selesai_(f, 'Pelanggaran ke-3'); return { ok: true, pelanggaran: ke, selesai: true }; }
@@ -210,8 +217,8 @@ const API_ = {
       const j = jv.find(x => Number(x[1]) === Number(r[P.ABSEN]));
       const n = nv.find(x => Number(x[1]) === Number(r[P.ABSEN]));
       return {
-        absen: Number(r[P.ABSEN]), nama: r[P.NAMA], kursi: r[P.BARIS] + r[P.KURSI], paket: r[P.PAKET], status: r[P.STATUS], login: Number(r[P.LOGIN] || 0),
-        mulai: waktu_(r[P.MULAI]), batas: waktu_(r[P.BATAS]), selesai: waktu_(r[P.SELESAI]), pelanggaran: Number(r[P.LANGGAR] || 0), aktif: waktu_(r[P.AKTIF]),
+        absen: Number(r[P.ABSEN]), nama: r[P.NAMA], kursi: r[P.BARIS] + r[P.KURSI], paket: r[P.PAKET], status: r[P.STATUS], login: angka_(r[P.LOGIN]),
+        mulai: waktu_(r[P.MULAI]), batas: waktu_(r[P.BATAS]), selesai: waktu_(r[P.SELESAI]), pelanggaran: angka_(r[P.LANGGAR]), aktif: waktu_(r[P.AKTIF]),
         ket: r[P.KET], disimpan: j ? waktu_(j[4]) : 0, terisi: j ? terisi_(j, paketId_(r[P.KELAS], r[P.SESI], r[P.PAKET])) : 0, nilai: n ? n[10] : '',
       };
     });
