@@ -89,11 +89,11 @@ function cariPeserta_(pred) {
   return null;
 }
 function tulisPeserta_(f, upd) { Object.keys(upd).forEach(k => f.sh.getRange(f.row, P[k] + 1).setValue(upd[k])); }
-function angka_(v) { return v instanceof Date ? 0 : Number(v || 0); }
+function angka_(v) { return v instanceof Date ? Math.round((v.getTime() - new Date(1899, 11, 30).getTime()) / 86400000) : Number(v || 0); }
 function perbaikiFormatPeserta() {
   const sh = sh_('Peserta'); const n = sh.getLastRow() - 1; if (n < 1) return;
-  sh.getRange('N:N').setNumberFormat('0'); sh.getRange('J:J').setNumberFormat('0');
-  const v = sh.getRange(2, 14, n, 1).getValues().map(r => [r[0] instanceof Date ? 0 : Number(r[0] || 0)]);
+  sh.getRange(1, 14, sh.getMaxRows(), 1).setNumberFormat('0'); sh.getRange(1, 10, sh.getMaxRows(), 1).setNumberFormat('0');
+  const v = sh.getRange(2, 14, n, 1).getValues().map(r => [angka_(r[0])]);
   sh.getRange(2, 14, n, 1).setValues(v);
 }
 function waktu_(d) { return d instanceof Date ? d.getTime() : (d ? new Date(d).getTime() : 0); }
